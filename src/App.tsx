@@ -68,24 +68,27 @@ const SinglePostBox = ({
 };
 
 
-/**
- * Fetches kind-1 posts by 5 random authors on Nostr (Jack Dorsey + 4 others)
- */
-const filter: Filter = {
-  authors: [
-    "82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2",
-    "e88a691e98d9987c964521dff60025f60700378a4879180dcbbb4a5027850411",
-    "0d06480b0c6e3be3c9a1a65d7e6bc2091227d55bf4c77eeb6037ba7776c300ec",
-    "b708f7392f588406212c3882e7b3bc0d9b08d62f95fa170d099127ece2770e5e",
-    "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce",
-  ],
-  since: 1713153600,
-  kinds: [1],
-};
+// /**
+//  * Below is the filter used to create this cache.
+//  * Fetches kind-1 posts by 5 random authors on Nostr (Jack Dorsey + 4 others)
+//  */
+// const filter: Filter = {
+//   authors: [
+//     "82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2",
+//     "e88a691e98d9987c964521dff60025f60700378a4879180dcbbb4a5027850411",
+//     "0d06480b0c6e3be3c9a1a65d7e6bc2091227d55bf4c77eeb6037ba7776c300ec",
+//     "b708f7392f588406212c3882e7b3bc0d9b08d62f95fa170d099127ece2770e5e",
+//     "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce",
+//   ],
+//   since: 1713153600,
+//   kinds: [1],
+// };
 
-const relays = ["wss://relay.primal.net"];
+// const relays = ["wss://relay.primal.net"];
 
-const urlToUse = "https://api.huddlers.dev/cache";
+const serverUrl = "https://api.huddlers.dev";
+const fetchEndpoint = "/fetch";
+const cacheId = "5dcb70c39905ccb68e739563cca1c45649b63aa072b18650d0d7b3c7b3d7e644";
 
 const ShortPostsApp = () => {
   const [loading, setLoading] = useState(true);
@@ -94,20 +97,20 @@ const ShortPostsApp = () => {
 
   const fetchEvents = useCallback(async () => {
     try {
-      const response = await fetch(urlToUse, {
-        mode: "cors",
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filter,
-          relays,
-        }),
-      });
-      const data = await response.json();
-      if (data.events && Array.isArray(data.events)) {
-        setEvents(data.events);
-        setProfiles(new Map(Object.entries(data.profiles)));
-        return data.events.length;
+      const response = await fetch(
+        `${serverUrl}${fetchEndpoint}?cache_id=${cacheId}`,
+        {
+          mode: "cors",
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const eventsData = await response.json();
+
+      if (eventsData.events && Array.isArray(eventsData.events)) {
+        setEvents(eventsData.events);
+        setProfiles(new Map(Object.entries(eventsData.profiles)));
+        return eventsData.events.length;
       }
     } catch (err) {
       console.log("Error", err);
@@ -115,24 +118,9 @@ const ShortPostsApp = () => {
     return 0;
   }, []);
 
-  const runInitialFetches = useCallback(async () => {
-    for (let i = 0; i < 1; i++) {
-      const numOfEvs = await fetchEvents();
-      if (numOfEvs > 0) {
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-    }
-    setLoading(false);
-  }, [fetchEvents, setLoading]);
-
   useEffect(() => {
-    runInitialFetches();
+    fetchEvents().then(() => setLoading(false));
   }, []);
-
-  if (loading) {
-    return <CircularProgress />;
-  }
 
   return (
     <Box
