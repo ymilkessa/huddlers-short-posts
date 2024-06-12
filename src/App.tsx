@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
-import { Event, Filter, Metadata } from "./types";
+import { Event, Metadata } from "./types";
 import { Avatar, Box, CircularProgress, Typography } from "@mui/material";
 import "./App.css"
 
@@ -140,6 +140,7 @@ const ShortPostsApp = () => {
           profile={profiles.get(element.pubkey)}
         />
       ))}
+      {loading && <CircularProgress sx={{ margin: "1rem" }} />}
     </Box>
   );
 };
